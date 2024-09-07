@@ -1,116 +1,186 @@
 import streamlit as st
+import openai
+import os
 from openai import OpenAI
+import PyPDF2
+import pdfplumber
+from anthropic import Anthropic
+from anthropic.types.message import Message
+from mistralai import Mistral
 import requests
 from bs4 import BeautifulSoup
-import time
-import os
-import logging
-import openai
+#import time
+#import os
+#import logging
 from openai import AzureOpenAI
 
-
-def read_url_content(url):
-   try:
-      response=requests.get(url)
-      response.raise_for_status() 
-      soup=BeautifulSoup(response.content, 'html.parser')
-      return soup.get_text()
-   except requests.RequestException as e:
-      print(f"Error reading {url}:{e}")
-      return None
-
-# Show title and description.
-st.title("Joy's Document question answering for HW1")
+st.title("Joy's Document question answering for HW2")
 st.write(
-    "Upload a document below and ask a question about it – GPT will answer! "
-    "To use this app, you need to provide an OpenAI API key, which you can get [here](https://platform.openai.com/account/api-keys). "
+"Upload a document below and ask a question about it – GPT will answer! "
+"To use this app, you need to provide an API key."
 )
 
-languages = ['English', 'Spanish', 'French']
-selected_language = st.selectbox('Select your language:', languages)
-st.write(f"You have selected: {selected_language}")
+#read PDF files
+def read_pdf(pdf_file):
+    reader = PyPDF2.PdfReader(pdf_file)
+    text = ""
+    for page in range(len(reader.pages)):
+        text += reader.pages[page].extract_text()
+    return text
 
-# Ask user for their OpenAI API key via `st.text_input`.
-# Alternatively, you can store the API key in `./.streamlit/secrets.toml` and access it
-# via `st.secrets`, see https://docs.streamlit.io/develop/concepts/connections/secrets-management
-openai_api_key = st.text_input("OpenAI API Key", type="password")
-#openai_api_key = st.secrets["OPENAI_API_KEY"]
-if not openai_api_key:
-    st.info("Please add your OpenAI API key to continue.", icon="🗝️")
-else:
+#read URL
+def read_url_content(url):
+     try:
+        response=requests.get(url)
+        response.raise_for_status() 
+        soup=BeautifulSoup(response.content, 'html.parser')
+        return soup.get_text()
+     except requests.RequestException as e:
+        print(f"Error reading {url}:{e}")
+        return None
 
-    # Create an OpenAI client.
-    client = OpenAI(api_key=openai_api_key)
 
-    # Let the user upload a file via `st.file_uploader`.
+#which LLM selected from sidebar
+def display(selected_llm):
+    client = None
+
+    if selected_llm == 'gpt-4o-mini':
+        #api_key = st.text_input("OpenAI API Key", type="password")
+        api_key = st.secrets['OPENAI_API_KEY']
+        if api_key:
+            client = OpenAI(api_key=api_key)
+        else:
+            st.warning("Please provide OpenAI API key")
+            return
+    elif selected_llm == 'claude-3-haiku-20240307':
+        #api_key = st.text_input("Anthropic API Key", type="password")
+        api_key = st.secrets['ANTHROPIC_API_KEY']
+        if api_key:
+            client = Anthropic(api_key=api_key)
+        else:
+            st.warning("Please provide Anthropic API key")
+            return
+    elif selected_llm == 'mistral-small-latest':
+        #api_key = st.text_input("Mistral API Key", type="password")
+        api_key = st.secrets['MISTRAL_API_KEY']
+        if api_key:
+            client = Mistral(api_key=api_key)
+        else:
+            st.warning("Please provide Mistral API key")
+            return
+    #else: 
+        #st.info("Please add your OpenAI API key to continue.", icon="🗝️")
+
+    #ask user to upload file
     uploaded_file = st.file_uploader(
         "Upload a document (.txt, or .pdf)", type=("txt", "pdf")
     )
 
+    #or ask user to paster URL
     question_url = st.text_area(
-       "Please insert an URL:",
-       placeholder="",
+        "Or insert an URL:",
+        placeholder="Copy URL here",
     )
 
-    # Ask the user for a question via `st.text_area`.
+    #ask user to select language
+    languages = ['English', 'Spanish', 'French']
+    selected_language = st.selectbox('Select your language:', languages)
+    st.write(f"You have selected: {selected_language}")
+
+
     question = st.text_area(
         "Now ask a question about the document!",
         placeholder="Can you give me a short summary?",
         disabled=not uploaded_file,
     )
 
-    if uploaded_file and question:
-
-        # Process the uploaded file and question.
-        file_extension = uploaded_file.name.split('.')[-1]
-        if file_extension == 'txt':
-          document = uploaded_file.read().decode()
-        elif file_extension == 'pdf':
-          document = read_pdf(uploaded_file)
-        else:
-          st.error("Unsupported file type.")
-        messages = [
-            {
-                "role": "user",
-                "content": f"Respond in {selected_language}. Here's a document: {document} \n\n---\n\n {question}",
-            }
-        ]
-
-        # Generate an answer using the OpenAI API.
-        stream = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=messages,
-            stream=True,
-        )
-
-
-        # Stream the response to the app using `st.write_stream`.
-        st.write_stream(stream)
-
+    if client is None:
+        st.info("Please enter API key to continue.")
     else:
-       url_content = read_url_content(question_url)
-       messages = [
-            {
+        if uploaded_file and question:
+            file_extension = uploaded_file.name.split('.')[-1]
+            if file_extension == 'txt':
+                document = uploaded_file.read().decode()
+            elif file_extension == 'pdf':
+                document = read_pdf(uploaded_file)
+            else:
+                st.error("Unsupported file type.")
+            messages = [
+                {
+                    "role": "user",
+                    "content": f"Respond in {selected_language}. Here's a document: {document} \n\n---\n\n {question}",
+                }
+            ]
+        
+        else:
+            url_content = read_url_content(question_url)
+            messages = [
+                {
                 "role": "user",
                 "content": f"Respond in {selected_language}. Here's a URL: {url_content} \n\n---\n\n {question}",
-            }
-        ]
-       
-       stream = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=messages,
-            stream=True,
-        )
-       
-       st.write_stream(stream)
+                }
+            ]
+        
+        #if using gpt-4o-mini
+        if selected_llm == "gpt-4o-mini":
+            stream = client.chat.completions.create(
+                model=selected_llm,
+                max_tokens=250,
+                messages=messages,
+                stream=True,
+                temperature=0.5,
+            )
+            
+            st.write_stream(stream)
+        
+        elif selected_llm == 'claude-3-haiku-20240307':
+            message = client.messages.create(
+                model=selected_llm,
+                max_tokens=256,
+                messages=messages,
+                temperature=0.5,
+            )
+            data = message.content[0].text
+            st.write(data)
+        
+        elif selected_llm == 'mistral-small-latest':
+            response = client.chat.complete(
+                model=selected_llm,
+                max_tokens=250,
+                messages=messages,
+                temperature=0.5,
+            )
+            data = response.choices[0].message.content
+            st.write(data)
+    
+
+
+
+
+
+
+
+
+#openai_api_key = st.text_input("OpenAI API Key", type="password")
+#openai_api_key = st.secrets["OPENAI_API_KEY"]
+
+
+
        
 
 
-question_to_ask = "Why are LLMs (AI) a danger to society?"
-system_message = """
-Goal: Answer the question using bullets. 
-      The answer should be appropriate for a 10 year old child to understand
-"""
+
+
+
+
+#question_to_ask = "Why are LLMs (AI) a danger to society?"
+#system_message = """
+#Goal: Answer the question using bullets. 
+#      The answer should be appropriate for a 10 year old child to understand
+#"""
+
+
+
 def output_info(content, start_time, model_info):
    end_time = time.time()
    time_taken = end_time - start_time
@@ -144,4 +214,4 @@ def do_openAI(model):
    ) 
 
    content = ""
-   
+
