@@ -12,7 +12,7 @@ from bs4 import BeautifulSoup
 #import time
 #import os
 #import logging
-from openai import AzureOpenAI
+#from openai import AzureOpenAI
 
 st.title("Joy's Document question answering for HW2")
 st.write(
