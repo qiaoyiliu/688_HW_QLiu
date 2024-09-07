@@ -2,7 +2,6 @@ import streamlit as st
 import openai
 import os
 from openai import OpenAI
-import PyPDF2
 import pdfplumber
 from anthropic import Anthropic
 from anthropic.types.message import Message
