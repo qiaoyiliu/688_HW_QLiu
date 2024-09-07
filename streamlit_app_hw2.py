@@ -2,7 +2,7 @@ import streamlit as st
 import openai
 import os
 from openai import OpenAI
-import PyPDF2
+#import PyPDF2
 import pdfplumber
 from anthropic import Anthropic
 from anthropic.types.message import Message
@@ -24,8 +24,9 @@ st.write(
 def read_pdf(pdf_file):
     reader = PyPDF2.PdfReader(pdf_file)
     text = ""
-    for page in range(len(reader.pages)):
-        text += reader.pages[page].extract_text()
+    with pdfplumber.open(pdf_file) as pdf:
+        for page in pdf.pages:
+            text += page.extract_text()
     return text
 
 #read URL
