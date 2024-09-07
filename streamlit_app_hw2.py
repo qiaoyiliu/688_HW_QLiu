@@ -2,7 +2,7 @@ import streamlit as st
 import openai
 import os
 from openai import OpenAI
-import PyPDF2
+import pypdf
 import pdfplumber
 from anthropic import Anthropic
 from anthropic.types.message import Message
@@ -22,7 +22,7 @@ st.write(
 
 #read PDF files
 def read_pdf(pdf_file):
-    reader = PyPDF2.PdfReader(pdf_file)
+    reader = pypdf.PdfReader(pdf_file)
     text = ""
     with pdfplumber.open(pdf_file) as pdf:
         for page in pdf.pages:
