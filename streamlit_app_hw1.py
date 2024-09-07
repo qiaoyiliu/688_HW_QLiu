@@ -2,7 +2,7 @@ import streamlit as st
 import openai
 import os
 from openai import OpenAI
-import PyPDF2
+import pypdf
 import pdfplumber
 from anthropic import Anthropic
 from anthropic.types.message import Message
@@ -12,9 +12,9 @@ from bs4 import BeautifulSoup
 #import time
 #import os
 #import logging
-from openai import AzureOpenAI
+#from openai import AzureOpenAI
 
-st.title("Joy's Document question answering for HW1")
+st.title("Joy's Document question answering for HW2")
 st.write(
 "Upload a document below and ask a question about it – GPT will answer! "
 "To use this app, you need to provide an API key."
@@ -22,10 +22,11 @@ st.write(
 
 #read PDF files
 def read_pdf(pdf_file):
-    reader = PyPDF2.PdfReader(pdf_file)
+    reader = pypdf.PdfReader(pdf_file)
     text = ""
-    for page in range(len(reader.pages)):
-        text += reader.pages[page].extract_text()
+    with pdfplumber.open(pdf_file) as pdf:
+        for page in pdf.pages:
+            text += page.extract_text()
     return text
 
 #read URL
@@ -45,24 +46,24 @@ def display(selected_llm):
     client = None
 
     if selected_llm == 'gpt-4o-mini':
-        #api_key = st.text_input("OpenAI API Key", type="password")
-        api_key = st.secrets['OPENAI_API_KEY']
+        api_key = st.text_input("OpenAI API Key", type="password")
+        #api_key = st.secrets['OPENAI_API_KEY']
         if api_key:
             client = OpenAI(api_key=api_key)
         else:
             st.warning("Please provide OpenAI API key")
             return
     elif selected_llm == 'claude-3-haiku-20240307':
-        #api_key = st.text_input("Anthropic API Key", type="password")
-        api_key = st.secrets['ANTHROPIC_API_KEY']
+        api_key = st.text_input("Anthropic API Key", type="password")
+        #api_key = st.secrets['ANTHROPIC_API_KEY']
         if api_key:
             client = Anthropic(api_key=api_key)
         else:
             st.warning("Please provide Anthropic API key")
             return
     elif selected_llm == 'mistral-small-latest':
-        #api_key = st.text_input("Mistral API Key", type="password")
-        api_key = st.secrets['MISTRAL_API_KEY']
+        api_key = st.text_input("Mistral API Key", type="password")
+        #api_key = st.secrets['MISTRAL_API_KEY']
         if api_key:
             client = Mistral(api_key=api_key)
         else:
