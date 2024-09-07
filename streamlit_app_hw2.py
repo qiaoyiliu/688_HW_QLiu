@@ -84,7 +84,7 @@ else:
         # Stream the response to the app using `st.write_stream`.
         st.write_stream(stream)
 
-    elif question_url and question:
+    else:
        url_content = read_url_content(question_url)
        messages = [
             {
@@ -98,6 +98,8 @@ else:
             messages=messages,
             stream=True,
         )
+       
+       st.write_stream(stream)
        
 
 
