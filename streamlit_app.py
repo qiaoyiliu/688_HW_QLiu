@@ -12,7 +12,9 @@ selected_page = st.sidebar.radio("Select Homework", ["HW 1", "HW 2", "test"])
 st.sidebar.title("LLM Options")
 #llm_options = ['gpt-4o-mini', 'Claude 3 Opus']
 selected_llm = st.sidebar.radio("Choose LLM to use:", 
-                                ['gpt-4o-mini', 'claude-3-haiku-20240307', 'mistral-small-latest'])
+                                ['gpt-4o-mini', 'gpt-4o-2024-05-13',
+                                 'claude-3-haiku-20240307', 'claude-3-opus-20240229',
+                                 'mistral-small-latest', 'mistral-medium-latest'])
 
 if selected_page == "HW 1":
     if 'streamlit_app_hw1' in sys.modules:

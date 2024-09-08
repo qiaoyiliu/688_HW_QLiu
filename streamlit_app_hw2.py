@@ -69,7 +69,28 @@ def display(selected_llm):
         else:
             st.warning("Please provide Mistral API key")
             return
-    #else: 
+    elif selected_llm == 'gpt-4o-2024-05-13':
+        api_key = st.secrets['OPENAI_API_KEY']
+        if api_key:
+            client = OpenAI(api_key=api_key)
+        else:
+            st.warning("Please provide OpenAI API key")
+            return 
+    elif selected_llm == 'claude-3-opus-20240229':
+        api_key = st.secrets['ANTHROPIC_API_KEY']
+        if api_key:
+            client = Anthropic(api_key=api_key)
+        else:
+            st.warning("Please provide Anthropic API key")
+            return
+    elif selected_llm == 'mistral-medium-latest':
+        #api_key = st.text_input("Mistral API Key", type="password")
+        api_key = st.secrets['MISTRAL_API_KEY']
+        if api_key:
+            client = Mistral(api_key=api_key)
+        else:
+            st.warning("Please provide Mistral API key")
+            return
         #st.info("Please add your OpenAI API key to continue.", icon="🗝️")
 
     #ask user to upload file
@@ -134,7 +155,18 @@ def display(selected_llm):
             
             st.write_stream(stream)
         
-        elif selected_llm == 'claude-3-haiku-20240307':
+        elif selected_llm == 'gpt-4o-2024-05-13':
+            stream = client.chat.completions.create(
+                model=selected_llm,
+                max_tokens=250,
+                messages=messages,
+                stream=True,
+                temperature=0.5,
+            )
+
+            st.write_stream(stream)
+        
+        elif selected_llm == 'claude-3-opus-20240229':
             message = client.messages.create(
                 model=selected_llm,
                 max_tokens=256,
@@ -145,6 +177,16 @@ def display(selected_llm):
             st.write(data)
         
         elif selected_llm == 'mistral-small-latest':
+            response = client.chat.complete(
+                model=selected_llm,
+                max_tokens=250,
+                messages=messages,
+                temperature=0.5,
+            )
+            data = response.choices[0].message.content
+            st.write(data)
+
+        elif selected_llm == 'mistral-medium-latest':
             response = client.chat.complete(
                 model=selected_llm,
                 max_tokens=250,
